@@ -201,7 +201,8 @@ class Model(dict,metaclass=ModelMetaclass):  #使用ModelMetaclass定制类Model
             else:  
                 raise ValueError('Invalid limit value self.__insert__,: %s ' % str(limit))  
         rs = yield from select(' '.join(sql),args) 
-        return [cls(**r) for r in rs] 
+        return [cls(**r) for r in rs]
+
     @classmethod  
     @asyncio.coroutine  
     def findNumber(cls, selectField, where=None, args=None):  
@@ -212,14 +213,50 @@ class Model(dict,metaclass=ModelMetaclass):  #使用ModelMetaclass定制类Model
         rs = yield from select(' '.join(sql), args, 1)  
         if len(rs) == 0:  
             return None  
-        return rs[0]['__num__']  
+        return rs[0]['__num__']
+
     @classmethod  
     @asyncio.coroutine  
     def find(cls, primarykey):  
         rs = yield from select('%s where `%s`=?' %(cls.__select__, cls.__primary_key__), [primarykey], 1)  
         if len(rs) == 0:  
             return None  
-        return cls(**rs[0])  
+        return cls(**rs[0])
+
+
+    @classmethod
+    @asyncio.coroutine
+    def findAll(cls, where=None, args=None, **kw):
+        ' find objects by where clause. '
+        sql = [cls.__select__]
+        if where:
+            sql.append('where')
+            sql.append(where)
+        if args is None:
+            args = []
+        orderBy = kw.get('orderBy', None)
+        if orderBy:
+            sql.append('order by')
+            sql.append(orderBy)
+        limit = kw.get('limit', None)
+        if limit is not None:
+            sql.append('limit')
+            if isinstance(limit, int):
+                sql.append('?')
+                args.append(limit)
+            elif isinstance(limit, tuple) and len(limit) == 2:
+                sql.append('?, ?')
+                args.extend(limit)
+            else:
+                raise ValueError('Invalid limit value: %s' % str(limit))
+        rs = yield from select(' '.join(sql), args)
+        return [cls(**r) for r in rs]
+
+
+    '''
+    # 以下findAll(cls,**kw)中少了参数，导致注册时在报错：users = yield from User.findAll('email=?', [email])
+    # TypeError: findAll() takes 1 positional argument but 3 were given
+    # 解决：修改为使用上面的findAll(cls, where=None, args=None, **kw)
     @classmethod  
     @asyncio.coroutine  
     def findAll(cls, **kw):  
@@ -235,6 +272,7 @@ class Model(dict,metaclass=ModelMetaclass):  #使用ModelMetaclass定制类Model
             print('%s where %s ' % (cls.__select__,  ' and '.join(args)), values)  
             rs = yield from select('%s where %s ' % (cls.__select__,  ' and '.join(args)), values)  
         return rs
+    '''
     
     @asyncio.coroutine  
     def save(self):  
