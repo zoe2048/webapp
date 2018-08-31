@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import www.config_default
+import config_default
 
 class Dict(dict):
     '''
@@ -38,7 +38,7 @@ def toDict(d):
         D[k] = toDict(v) if isinstance(v, dict) else v
     return D
 
-configs = www.config_default.configs
+configs = config_default.configs
 
 try:
     import config_override
